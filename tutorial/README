@@ -1,0 +1,5 @@
+To run the ALR tutorial:
+
+- install jupyter (e.g., pip3 install jupyterlab)
+
+- Then, in the 'tutorial' folder, open a terminal and run: jupyter notebook ALR_description_and_tutorial.ipynb

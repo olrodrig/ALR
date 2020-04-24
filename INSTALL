@@ -1,0 +1,11 @@
+The ALR code, written on R, does not require installation, but it has dependencies that must be satisfied:
+
+- R (in Ubuntu: apt install r-base)
+- R.utils (in Ubuntu: apt install r-cran-r.utils)
+- MatrixStats (in Ubuntu: apt install r-cran-matrixstats)
+    
+To run ALR from Python, the following dependencies have to be satisfied:
+
+- Python 3 (in Ubuntu: apt install python3)
+- numpy (e.g., pip3 install numpy)
+- rpy2 (e.g., pip3 install rpy2)
