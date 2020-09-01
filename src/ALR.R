@@ -34,6 +34,20 @@ Automated_Loess_Regression <- function(x, y, err_y=0, deg=2, alpha=0, outliers_d
     }
   }
 
+  #if alpha is a vector (with two elements), then the optimum alpha value to use is the alpha value computed
+  #from data with x values in the range [alpha[1], alpha[2]], rescaled to the total number of data
+  if (length(alpha) == 2){
+  
+    #selects data in the range [alpha[1], alpha[2]]
+    i_bool    <- indices.in.range(x, alpha[1], alpha[2])
+    x_loc     <-     x[i_bool]
+    y_loc     <-     y[i_bool]
+    err_y_loc <- err_y[i_bool]
+    ALR_loc   <- Automated_Loess_Regression(x_loc, y_loc, err_y=err_y_loc, deg=deg, alpha=0, outliers_det=outliers_det, average=average, verbose=FALSE)
+    alpha_loc <- ALR_loc$alpha
+    alpha <- alpha_loc*length(x_loc)/length(x)
+  }
+  
   N.input.data <- length(x)
   n_sims       <- 1000 #Number of simulations to estimate the loess error
   k_tukey      <- 1.5  #parameter to define the inner fences of the Tukey's rule
@@ -578,6 +592,15 @@ tukey.fences <- function(x, k_tukey){
   fence_l <- Q1-k_tukey*IQR
   fence_u <- Q3+k_tukey*IQR
   return(list(fence_l, fence_u))
+}
+
+#returns the indices (booleans) of the elements in x within the range [xmin, xmax]
+indices.in.range <- function(x, xmin, xmax){
+  i_bool <- rep(TRUE,length(x))
+  for (i in 1:length(x)){
+    if (x[i]<xmin || x[i]>xmax){ i_bool[i] <- FALSE}
+  }
+  return(i_bool)
 }
 
 

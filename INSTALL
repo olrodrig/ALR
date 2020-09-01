@@ -9,3 +9,4 @@ To run ALR from Python, the following dependencies have to be satisfied:
 - Python 3 (in Ubuntu: apt install python3)
 - numpy (e.g., pip3 install numpy)
 - rpy2 (e.g., pip3 install rpy2)
+- matplotlib (e.g., pip3 install matplotlib)

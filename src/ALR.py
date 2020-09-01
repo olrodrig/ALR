@@ -3,6 +3,7 @@ import numpy as np
 import rpy2
 from rpy2.robjects.packages import STAP
 from rpy2.robjects.vectors import FloatVector
+from plot_ALR import plot_ALR
 
 class Automated_Loess_Regression:
   def __init__(self, x, y, err_y=0, deg=2, alpha=0, outliers_det=False, average=True, verbose=False):
@@ -13,9 +14,12 @@ class Automated_Loess_Regression:
     This routine takes into account the observed and intrinsic errors, along with the presence of possible outliers.
     """
     
-    deg, alpha, outliers_det = int(deg), float(alpha), bool(outliers_det)
+    deg, outliers_det = int(deg), bool(outliers_det)
+    
+    if hasattr(alpha, '__len__') == False:  alpha = float(alpha) 
     
     #Convert Python vectors to R vectors
+    if hasattr(alpha, '__len__') == True:  alpha = FloatVector(alpha) 
     rx, ry, rerr_y = FloatVector(x), FloatVector(y), 0
     if hasattr(err_y, '__len__') == True:
         rerr_y = FloatVector(err_y)
@@ -76,3 +80,8 @@ class Automated_Loess_Regression:
           y_ALR     = np.interp(x, self.x_ALR, self.y_ALR)
           err_y_ALR = np.interp(x, self.x_ALR, self.err_y_ALR)
           return y_ALR, err_y_ALR
+  
+  #plot the ALR regression
+  def plot(self, ALRs=[], comparison_func=[], invert_y_axis=False, object_name='input data', xlabel='x', ylabel='y', figure_name=''):
+      if len(ALRs) == 0:  ALRs = [self]
+      plot_ALR(ALRs, comparison_func=comparison_func, invert_y_axis=invert_y_axis, object_name=object_name, xlabel=xlabel, ylabel=ylabel, figure_name=figure_name)
