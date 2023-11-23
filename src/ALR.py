@@ -6,7 +6,7 @@ from rpy2.robjects.vectors import FloatVector
 from plot_ALR import plot_ALR
 
 class Automated_Loess_Regression:
-  def __init__(self, x, y, err_y=0, deg=2, alpha=0, outliers_det=False, average=True, verbose=False):
+  def __init__(self, x, y, err_y=0, deg=2, alpha=0, outliers_det=False, n_sims=1000, average=True, verbose=False):
     """
     Automated loess regression (ALR).
     
@@ -33,7 +33,7 @@ class Automated_Loess_Regression:
     with open(path+'/ALR.R', 'r') as f:
         string = f.read()
     try:    
-        ALR=STAP(string,"Automated_Loess_Regression").Automated_Loess_Regression(rx, ry, err_y=rerr_y, deg=deg, alpha=alpha, outliers_det=outliers_det, average=average, verbose=verbose)
+        ALR=STAP(string,"Automated_Loess_Regression").Automated_Loess_Regression(rx, ry, err_y=rerr_y, deg=deg, alpha=alpha, outliers_det=outliers_det, average=average, n_sims=n_sims, verbose=verbose)
     
         ###ALR ATTRIBUTES###
             
@@ -53,8 +53,10 @@ class Automated_Loess_Regression:
         self.x_ALR      = np.array(ALR.rx2('x_ALR'))
         self.y_ALR      = np.array(ALR.rx2('y_ALR'))
         self.err_y_ALR  = np.array(ALR.rx2('err_y_ALR'))
+        self.y_ALR_sims = np.array(ALR.rx2('y_ALR_sims'))
         self.alpha      = ALR.rx2('alpha')[0]
         self.enp        = ALR.rx2('enp')[0]
+        self.ssd        = ALR.rx2('ssd')[0]
         self.err_0      = ALR.rx2('err_0')[0]
         self.n_outliers = int(ALR.rx2('n_outliers')[0])
         self.n_fit      = int(self.n_data - self.n_outliers)

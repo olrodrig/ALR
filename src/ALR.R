@@ -11,7 +11,7 @@ options(warn=-1) #=-1: does not print warnings. =0: pring warnings. =1: print wa
 #------------------------------------------------------------------------
 
 # Automated_Loess_Regression class
-Automated_Loess_Regression <- function(x, y, err_y=0, deg=2, alpha=0, outliers_det=FALSE, average=TRUE, verbose=FALSE){
+Automated_Loess_Regression <- function(x, y, err_y=0, deg=2, alpha=0, outliers_det=FALSE, n_sims=1000, average=TRUE, verbose=FALSE){
 
   if (length(err_y) > 1){
     with_y_errors <- TRUE
@@ -49,8 +49,7 @@ Automated_Loess_Regression <- function(x, y, err_y=0, deg=2, alpha=0, outliers_d
   }
   
   N.input.data <- length(x)
-  n_sims       <- 1000 #Number of simulations to estimate the loess error
-  k_tukey      <- 1.5  #parameter to define the inner fences of the Tukey's rule
+  k_tukey      <- 1.5    #parameter to define the inner fences of the Tukey's rule
   
   #Identification of possible outliers using the Tukey's rule
   data  <- identify.possible.outliers(x, y, err_y=err_y, average=average, deg=deg, alpha=alpha, k_tukey=k_tukey, outliers_det=outliers_det)
@@ -111,10 +110,10 @@ Automated_Loess_Regression <- function(x, y, err_y=0, deg=2, alpha=0, outliers_d
     y_loess    <- predict(model, x_intpol) #loess fit
     enp        <- model$trace.hat + 1      #equivalent number of parameters
     residuals  <- model$residuals
-    rms        <- sqrt(sum(residuals^2)/(length(residuals)-enp))
+    ssd        <- sqrt(sum(residuals^2)/(length(residuals)-enp)) #sample standard deviation
     N.out      <- 0
     if (outliers_det == TRUE) { N.out <- length(x_out) }
-    if (with_y_errors == FALSE) { err_0_tot <- rms}
+    if (with_y_errors == FALSE) { err_0_tot <- ssd}
     
     if (N.out/N.input.data>0.2){ 
       cat(paste0('WARNING: ',N.out,' of ',N.input.data,' (',round(N.out/N.input.data*100,0),'%) of the input data were detected as outliers.\n'))
@@ -143,22 +142,18 @@ Automated_Loess_Regression <- function(x, y, err_y=0, deg=2, alpha=0, outliers_d
       #outliers detection
       description <- 'outliers detection               '
       if (outliers_det == TRUE){
-        par_value   <- '     True'
         print(paste(description,'TRUE'))
       }
       if (outliers_det == FALSE){
-        par_value   <- '    False'
         print(paste(description,'FALSE'))
       }
       
       #average data
       description <- 'average y values with the same x '
       if (average == TRUE){
-        par_value   <- '     True'
         print(paste(description,'TRUE'))
       }
       if (average == FALSE){
-        par_value   <- '    False'
         print(paste(description,'FALSE'))
       }
       
@@ -185,14 +180,19 @@ Automated_Loess_Regression <- function(x, y, err_y=0, deg=2, alpha=0, outliers_d
         print(paste(description, par_value))
       }
       
-      #intrinsic error
-      description <- 'intrinsic error (Gaussian)       '
-      par_value   <- toString(sprintf('%.3E', err_0_tot))
-      print(paste(description, par_value))
-      
       #equivalent number of parameters
       description <- 'equivalent number of parameters  '
       par_value   <- toString(round(enp,digits=1))
+      print(paste(description, par_value))
+      
+      #sample standard deviation
+      description <- 'sample standard deviation        '
+      par_value   <- toString(sprintf('%.3E', ssd))
+      print(paste(description, par_value))
+      
+      #intrinsic error
+      description <- 'intrinsic error (Gaussian)       '
+      par_value   <- toString(sprintf('%.3E', err_0_tot))
       print(paste(description, par_value))
       print('')
     }
@@ -201,7 +201,7 @@ Automated_Loess_Regression <- function(x, y, err_y=0, deg=2, alpha=0, outliers_d
     if (with_y_errors == TRUE){
       models <- loess.simulations(x, y, err_y, optimum.alpha, deg, n_sims, positive_only=FALSE)
     } else {
-      models <- loess.simulations(x, y, rep(rms, length(x)), optimum.alpha, deg, n_sims, positive_only=FALSE)
+      models <- loess.simulations(x, y, rep(ssd, length(x)), optimum.alpha, deg, n_sims, positive_only=FALSE)
     }
         
     simulations  <- loess.data(models, n_sims, x_intpol)
@@ -219,8 +219,8 @@ Automated_Loess_Regression <- function(x, y, err_y=0, deg=2, alpha=0, outliers_d
       res     <- res[res > fence_l]
       res     <- res[res < fence_u]
       
-      rms <- sqrt(sum(res^2)/(length(res)-enp))
-      err_y_loess <- c(err_y_loess, rms)
+      ssd_i <- sqrt(sum(res^2)/(length(res)-enp))
+      err_y_loess <- c(err_y_loess, ssd_i)
     }
     
     err_y_loess <- sqrt(err_y_loess^2) 
@@ -240,6 +240,7 @@ Automated_Loess_Regression <- function(x, y, err_y=0, deg=2, alpha=0, outliers_d
     }
     optimum.alpha <- 0.0
     enp           <- 0.0
+    ssd           <- 0.0
     err_0_tot     <- 0.0
     N.out         <- 0
     if (verbose == TRUE) {
@@ -251,7 +252,7 @@ Automated_Loess_Regression <- function(x, y, err_y=0, deg=2, alpha=0, outliers_d
     
     residuals <- rep(0.0, length(x))
     model     <- approx(x, y, x_intpol)
-    y_loess   <- model$y  
+    y_loess   <- model$y
     
     #compute loess error
     if (with_y_errors == TRUE){
@@ -283,7 +284,7 @@ Automated_Loess_Regression <- function(x, y, err_y=0, deg=2, alpha=0, outliers_d
     }
   }
   
-  Automated_Loess_Regression <- list(deg=deg, outliers_det=outliers_det, n_data=N.input.data, x=x, y=y, err_y=err_y, with_y_errors=with_y_errors, alpha=optimum.alpha, enp=enp, err_0=err_0_tot, n_outliers=N.out, n_fit=N.input.data-N.out, x_outliers=x_out, y_outliers=y_out, err_y_outliers=err_y_out, x_ALR=x_intpol, y_ALR=y_loess, err_y_ALR=err_y_loess, interp=interp)
+  Automated_Loess_Regression <- list(deg=deg, outliers_det=outliers_det, n_data=N.input.data, x=x, y=y, err_y=err_y, with_y_errors=with_y_errors, alpha=optimum.alpha, enp=enp, ssd=ssd, err_0=err_0_tot, n_outliers=N.out, n_fit=N.input.data-N.out, x_outliers=x_out, y_outliers=y_out, err_y_outliers=err_y_out, x_ALR=x_intpol, y_ALR=y_loess, err_y_ALR=err_y_loess, interp=interp, y_ALR_sims=t(y_loess_sims))
   attr(Automated_Loess_Regression, "class") <- "ALR"
   Automated_Loess_Regression
 }
@@ -307,8 +308,8 @@ weighted_average <- function(x, err_x, with_intrinsic_error=TRUE){
   if (with_intrinsic_error==TRUE){
     if (0 %in% err_x){cat('ERROR (in weighted_average): attempt to compute a weighted average with zero errors.\n')}
     residuals <- x - mean(x)
-    rms       <- sqrt(sum(residuals^2)/(length(residuals)-1))
-    err_0s    <- seq(0.0, rms, length.out=11)
+    ssd       <- sqrt(sum(residuals^2)/(length(residuals)-1))
+    err_0s    <- seq(0.0, ssd, length.out=11)
   } else {
     err_0s    <- seq(0.0, 0.0, length.out=1)
   }
@@ -334,7 +335,7 @@ weighted_average <- function(x, err_x, with_intrinsic_error=TRUE){
 average_y_values <- function(x, y, err_y=0){
 
   with_y_error <- TRUE
-  if (err_y == 0) {
+  if (length(err_y) == 1){
     with_y_error <- FALSE
     err_y <- y*0.0 + 1.0
   }
@@ -379,7 +380,7 @@ average_y_values <- function(x, y, err_y=0){
 #In the case of observations without errors, we use the normal residuals approximation
 gaussian.minus.two.log.likelihood <- function(residuals, err_y=0, err_i=0){
 
-  if (err_y == 0){
+  if (length(err_y) == 1){
     N             <- length(residuals)
     sigma.squared <- sum(residuals^2)/N     #based on the definition of Hurvich & Tsai (1989)
     m2lnL         <- N*log(sigma.squared)+N #Burnham & Anderson 2002, page 17
@@ -400,8 +401,8 @@ alpha.values.to.explore <- function(x, y, err_y=0, deg=2, family='gaussian'){
   orders.fit <- numeric(0)
   alphas.fit <- numeric(0)
   for (alpha in all_alphas){
-    if (err_y == 0)  model <- try(loess(y~x, span=alpha, degree=deg, family=family), silent=TRUE)
-    if (err_y != 0)  model <- try(loess(y~x, span=alpha, degree=deg, family=family, weights=1.0/err_y^2), silent=TRUE)
+    if (length(err_y) == 1)  model <- try(loess(y~x, span=alpha, degree=deg, family=family), silent=TRUE)
+    if (length(err_y) >  1)  model <- try(loess(y~x, span=alpha, degree=deg, family=family, weights=1.0/err_y^2), silent=TRUE)
     if (inherits(model, "try-error")==FALSE){
       trL <- model$trace.hat  #tr(L)
       if (is.nan(trL)==FALSE){
@@ -439,8 +440,8 @@ loess.IC.alpha <- function(x, y, err_y=0, alphas=0, deg=2, family='gaussian'){
   IC.min    <- 1.e100
   optimum.alpha <- -1.0
   for (alpha in alphas){
-    if (err_y == 0)  model <- try(loess(y~x, span=alpha, degree=deg, family=family), silent=TRUE)
-    if (err_y != 0)  model <- try(loess(y~x, span=alpha, degree=deg, family=family, weights=1.0/err_y^2), silent=TRUE)
+    if (length(err_y) == 1)  model <- try(loess(y~x, span=alpha, degree=deg, family=family), silent=TRUE)
+    if (length(err_y) >  1)  model <- try(loess(y~x, span=alpha, degree=deg, family=family, weights=1.0/err_y^2), silent=TRUE)
     if (inherits(model, "try-error")==FALSE){
 
       trL <- model$trace.hat  #tr(L)
@@ -452,7 +453,7 @@ loess.IC.alpha <- function(x, y, err_y=0, alphas=0, deg=2, family='gaussian'){
         if (k<k.max){ #otherwise (n-k-1.0)<=0
           residuals <- model$residuals
           m2lnL     <- gaussian.minus.two.log.likelihood(residuals, err_y) #-2*ln(Likelihood)
-          
+
           IC <- m2lnL + penalty
           if (is.finite(IC)){
             ICs    <- c(ICs,IC)
@@ -473,7 +474,7 @@ loess.IC.alpha <- function(x, y, err_y=0, alphas=0, deg=2, family='gaussian'){
 
 #Returns the optimum model given an optimum alpha
 loess.optimum.model <- function(x, y, err_y=0, alpha=0.2, deg=2, family='gaussian'){
-  if (err_y == 0){
+  if (length(err_y) == 1){
     optimum.model <- try(loess(y~x, span=alpha, degree=deg, family=family), silent=TRUE)
   } else {
     optimum.model <- try(loess(y~x, span=alpha, degree=deg, family=family, weights=1.0/err_y^2), silent=TRUE)
@@ -526,15 +527,15 @@ loess.data <- function(models, n_sims, x){
 }
 
 
-#Compute the rms and estimate the intrinsic error (err_0) through log-likelihood maximization
-rms.intrinsic.dispersion <- function(residuals, err_y=0){
+#Compute the sample standard deviation and estimate the intrinsic error (err_0) through log-likelihood maximization
+ssd.intrinsic.dispersion <- function(residuals, err_y=0){
 
   n_data       <- length(residuals)
   residuals.sq <- residuals^2
-  rms          <- sqrt(sum(residuals.sq)/n_data)
+  ssd          <- sqrt(sum(residuals.sq)/n_data)
   err_0        <- 0.0
-  if (err_y != 0){
-    errs     <- seq(0.0, rms, length.out=11)
+  if (length(err_y) > 1){
+    errs     <- seq(0.0, ssd, length.out=11)
     lnL_max <- -1.e90
     for (err in errs){
       Var <- err_y^2+err^2
@@ -545,7 +546,7 @@ rms.intrinsic.dispersion <- function(residuals, err_y=0){
       }
     }
   }
-  return(list(rms, err_0))
+  return(list(ssd, err_0))
 }
 
 
@@ -571,8 +572,8 @@ model.with.intrinsic.error <- function(x, y, err_y=0, deg=2, alpha=0.2){
     residuals <- model$residuals
     
     #check whether it is necessary to include an intrinsic error
-    rms.err0 <- rms.intrinsic.dispersion(residuals, err_y=err_y_tot)
-    rms      <- rms.err0[[1]]; err_0 <- rms.err0[[2]]
+    ssd.err0 <- ssd.intrinsic.dispersion(residuals, err_y=err_y_tot)
+    ssd      <- ssd.err0[[1]]; err_0 <- ssd.err0[[2]]
     if (err_0==0){
       compute_intrinsic_error <- FALSE
     }
@@ -608,7 +609,7 @@ indices.in.range <- function(x, xmin, xmax){
 identify.possible.outliers <- function(x, y, err_y=0, average=average, deg=deg, alpha=alpha, k_tukey=k_tukey, outliers_det=outliers_det){
 
   with_y_error <- TRUE
-  if (err_y == 0){ with_y_error <- FALSE }
+  if (length(err_y) == 1){ with_y_error <- FALSE }
 
   family   <- 'symmetric'  #more robust against outliers than 'gaussian' family
   x_out    <- numeric(0); y_out <- numeric(0); err_y_out <- numeric(0)
@@ -623,7 +624,7 @@ identify.possible.outliers <- function(x, y, err_y=0, average=average, deg=deg, 
       x_ave <- x; y_ave <- y; err_y_ave <- 0
       if (with_y_error == TRUE){ err_y_ave <- err_y }
     }
-  
+
     #generate alpha values to explore
     if (alpha == 0){
       alphas <- alpha.values.to.explore(x_ave, y_ave, err_y=err_y_ave, deg=deg, family=family)
@@ -633,8 +634,8 @@ identify.possible.outliers <- function(x, y, err_y=0, average=average, deg=deg, 
       #test whether the input alpha has sense
       n <- length(x)
       optimum.alpha <- -1.0
-      if (err_y == 0)  model <- try(loess(y~x, span=alpha, degree=deg, family=family), silent=TRUE)
-      if (err_y != 0)  model <- try(loess(y~x, span=alpha, degree=deg, family=family, weights=1.0/err_y^2), silent=TRUE)
+      if (length(err_y) == 1)  model <- try(loess(y~x, span=alpha, degree=deg, family=family), silent=TRUE)
+      if (length(err_y) >  1)  model <- try(loess(y~x, span=alpha, degree=deg, family=family, weights=1.0/err_y^2), silent=TRUE)
       if (inherits(model, "try-error")==FALSE){
       
         trL <- model$trace.hat  #tr(L)

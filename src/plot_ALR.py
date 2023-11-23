@@ -9,9 +9,9 @@ def plot_outliers(ax, axr, ALR):
   else:
       x_out, y_out = ALR.x_outliers, ALR.y_outliers
 
-  ax.plot(x_out, y_out, 'or',markeredgecolor='k', zorder=2, label='outliers ('+str(len(x_out))+')')
+  ax.plot(x_out, y_out, 'or',mec='k', zorder=2, label='outliers ('+str(len(x_out))+')')
   residuals_out = y_out - ALR.interp(x_out)[0]
-  axr.plot(x_out, residuals_out, 'or',markeredgecolor='k')
+  axr.plot(x_out, residuals_out, 'or',mec='k')
 
 
 def plot_sigma_limits(ax, x, y, err_y, lw=1, zorder=1, labels=False):
@@ -95,7 +95,7 @@ def plot_ALR(ALRs, comparison_func=[], invert_y_axis=False, object_name='input d
       
       #plot input data
       if with_y_errors:  ax.plot([x,x], [y-err_y, y+err_y], '-', color='gray', zorder=1)
-      ax.plot(x, y, 'o', color='white',markeredgecolor='k', zorder=2, label=object_name+' ('+str(N_data)+')')
+      ax.plot(x, y, 'o', color='white',mec='k', zorder=2, label=object_name+' ('+str(N_data)+')')
       
       #plot comparison functions
       if len(comparison_func) != 0:
@@ -103,13 +103,15 @@ def plot_ALR(ALRs, comparison_func=[], invert_y_axis=False, object_name='input d
           plots, labels = [], []
           for func in comparison_func:
               
-              y_for_res     = func['y'][func['x']>=min(x_ALR)]
-              if 'err_y' in func.keys():  err_y_for_res = func['err_y'][func['x']>=min(x_ALR)]
-              x_res         = func['x'][func['x']>=min(x_ALR)]
+              mask = (func['x']>=min(x_ALR)) & (func['x']<=max(x_ALR))
+              x_res         = func['x'][mask]
+              y_for_res     = func['y'][mask]
+              if 'err_y' in func.keys():  err_y_for_res = func['err_y'][mask]
               
-              y_for_res     = y_for_res[x_res<=max(x_ALR)]
-              if 'err_y' in func.keys():  err_y_for_res = err_y_for_res[x_res<=max(x_ALR)]
-              x_res         = x_res[x_res<=max(x_ALR)]
+              #mask = x_res<=max(x_ALR)
+              #y_for_res     = y_for_res[mask]
+              #if 'err_y' in func.keys():  err_y_for_res = err_y_for_res[mask]
+              #x_res         = x_res[mask]
               
               res = y_for_res - np.interp(x_res, x_ALR, y_ALR)
               
@@ -155,7 +157,7 @@ def plot_ALR(ALRs, comparison_func=[], invert_y_axis=False, object_name='input d
       
       #plot residuals
       if with_y_errors:  axr.plot([x,x], [residuals-err_y, residuals+err_y], '-', color='gray', zorder=1)
-      axr.plot(x, residuals, 'ok', color='white',markeredgecolor='k', zorder=2)
+      axr.plot(x, residuals, 'o', color='white',mec='k', zorder=2)
       plot_sigma_limits(axr, x_ALR, 0.0, err_y_ALR, lw=2, zorder=3, labels=False)
         
       #outliers
